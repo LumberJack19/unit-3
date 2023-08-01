@@ -8,27 +8,6 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 const div = d3.selectAll("div");
 </script>
 
-function createMap(){
-
-    //create the map
-    map = L.map('map', {
-        center: [43.074722, -89.384167], // setting the initial geographical center of the map
-        zoom: 2 // setting the initial zoom level
-    });
-
-    // Further refining the view of the map by setting the geographical center and the zoom level.
-    // In this case, it's overriding the initial center and zoom level.
-    map.setView([43.05, -89.384167], 7);
-
-    //add OSM base tilelayer
-    L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
-    }).addTo(map);
-
-    //call getData function
-    getData(map);
-};
-
 //Example 2.3 line 1
 var dataArray = [10, 20, 30, 40, 50];
 
@@ -38,19 +17,19 @@ var circles = container.selectAll(".circles") //but wait--there are no circles y
 
 var cityPop = [
     { 
-        city: 'Madison',
+        city: 'Madison: ',
         population: 233209
     },
     {
-        city: 'Milwaukee',
+        city: 'Milwaukee: ',
         population: 594833
     },
     {
-        city: 'Green Bay',
+        city: 'Green Bay: ',
         population: 104057
     },
     {
-        city: 'Superior',
+        city: 'Superior: ',
         population: 27244
     }
 ];

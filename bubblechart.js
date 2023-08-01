@@ -124,7 +124,7 @@ var popLine = labels.append("tspan")
     .attr("class", "popLine")
     .attr("x", function(d,i){
         //horizontal position to the right of each circle
-        return x(i) + Math.sqrt(d.population * 0.01 / Math.PI) + 5;
+        return x(i) + Math.sqrt(d.population * 0.10 / Math.PI) + 5;
     })
     .text(function(d){
         return "Pop. " + format(d.population); //use format generator to format numbers
