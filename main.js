@@ -1,4 +1,3 @@
-// This function is responsible for creating the Leaflet map
 var map;
 var minValue;
 
@@ -8,7 +7,7 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 const div = d3.selectAll("div");
 </script>
 
-//Example 2.3 line 1
+
 var dataArray = [10, 20, 30, 40, 50];
 
 var circles = container.selectAll(".circles") //but wait--there are no circles yet!
@@ -34,7 +33,7 @@ var cityPop = [
     }
 ];
 
-//Example 2.4 line 1
+
 var dataArray = [10, 20, 30, 40, 50];
 
 var circles = container.selectAll(".circles") //but wait--there are no circles yet!
@@ -81,7 +80,7 @@ var circles = container.selectAll(".circles") //but wait--there are no circles y
             population: 27244
         }
     ];
-    //Example 2.6 line 3
+
 var circles = container.selectAll(".circles") //create an empty selection
     .data(cityPop) //here we feed in an array
     .enter() //one of the great mysteries of the universe
@@ -104,7 +103,6 @@ var circles = container.selectAll(".circles") //create an empty selection
         return 450 - (d.population * 0.0005);
     });
 
-    //above Example 2.8 line 20
         //color scale generator 
         var color = d3.scaleLinear()
         .range([
@@ -182,19 +180,6 @@ function calcPropRadius(attValue) {
     return radius;
 };
 
-//function to convert markers to circle markers and add popups
-/*function pointToLayer(feature, latlng){
-    //Determine which attribute to visualize with proportional symbols
-    var attribute = "2020 Enplanements";
-    var attribute = "2021 Enplanements";
-    //create marker options
-    var options = {
-        fillColor: "#ff7800",
-        color: "#000",
-        weight: 1,
-        opacity: 1,
-        fillOpacity: 0.8
-    }; */
 
     //For each feature, determine its value for the selected attribute
     var attValue = Number(feature.properties[attribute]);
@@ -340,18 +325,6 @@ var popLine = labels.append("tspan")
         return "Pop. " + d.population;
     });
 
-/*.axis path,
-.axis line {
-    fill: none;
-    stroke: black;
-    stroke-width: 1px;
-    shape-rendering: crispEdges;
-}
-
-.axis text {
-    font-family: sans-serif;
-    font-size: 0.9em;
-}*/
 
 //create axis g element and add axis
 var axis = container.append("g")
@@ -378,20 +351,5 @@ function createSequenceControls(){
     document.querySelector('#reverse').insertAdjacentHTML('beforeend',"<img src='img/reverse.png'>")
     document.querySelector('#forward').insertAdjacentHTML('beforeend',"<img src='img/forward.png'>")
 };
-
-/*function getData(map){
-    //load the dataMega
-    fetch("data/cy21allenplane.geojson")
-        .then(function(response){
-            return response.json();
-        })
-        .then(function(json){
-            var attributes = processData(json);
-            minValue = calcMinValue(json);
-            //call function to create proportional symbols
-            createPropSymbols(json);
-            createSequenceControls();
-        })
-};*/
 
 document.addEventListener('DOMContentLoaded',createMap)
