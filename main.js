@@ -1,4 +1,4 @@
-//wrap everything is immediately invoked anonymous function so nothing is in clobal scope
+//wrap everything is immediately invoked anonymous function so nothing is in global scope
 (function () {
     //pseudo-global variables
     var attrArray = ["varA", "varB", "varC", "varD", "varE"]; //list of attributes
@@ -34,7 +34,7 @@
             .attr("width", width)
             .attr("height", height);
 
-        //create Albers equal area conic projection centered on France
+        //create Albers equal-area conic projection centered on France
         var projection = d3
             .geoAlbers()
             .center([0, 46.2])
@@ -47,9 +47,9 @@
 
         //use Promise.all to parallelize asynchronous data loading
         var promises = [
-            d3.csv("data/unitsData.csv"),
-            d3.json("data/EuropeCountries.topojson"),
-            d3.json("data/FranceRegions.topojson"),
+            d3.csv("unitsData.csv"),
+            d3.json("EuropeCountries.topojson"),
+            d3.json("FranceRegions.topojson") //updated pathnames
         ];
         Promise.all(promises).then(callback);
 
