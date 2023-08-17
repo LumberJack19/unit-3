@@ -1,452 +1,403 @@
-// This function is responsible for creating the Leaflet map
-var map;
-var minValue;
+//wrap everything is immediately invoked anonymous function so nothing is in clobal scope
+(function () {
+    //pseudo-global variables
+    var attrArray = ["varA", "varB", "varC", "varD", "varE"]; //list of attributes
+    var expressed = attrArray[0]; //initial attribute
 
-//Example 1.1 line 3...container block
-var container = d3.select("body") //get the <body> element from the DOM
-.append("svg") //put a new svg in the body
+    //chart frame dimensions
+    var chartWidth = window.innerWidth * 0.425,
+        chartHeight = 473,
+        leftPadding = 25,
+        rightPadding = 2,
+        topBottomPadding = 5,
+        chartInnerWidth = chartWidth - leftPadding - rightPadding,
+        chartInnerHeight = chartHeight - topBottomPadding * 2,
+        translate = "translate(" + leftPadding + "," + topBottomPadding + ")";
 
-//SVG dimension variables
-var w = 900, h = 500;
+    //create a scale to size bars proportionally to frame and for axis
+    var yScale = d3.scaleLinear().range([463, 0]).domain([0, 110]);
 
-//Example 1.2 line 1...container block
-var container = d3.select("body") //get the <body> element from the DOM
-.append("svg") //put a new svg in the body
-.attr("width", w) //assign the width
-.attr("height", h) //assign the height
-.attr("class", "container") //always assign a class (as the block name) for styling and future selection
+    //begin script when window loads
+    window.onload = setMap();
 
-//Example 1.3 line 4...container block
-var container = d3.select("body") //get the <body> element from the DOM
-.append("svg") //put a new svg in the body
-.attr("width", w) //assign the width
-.attr("height", h) //assign the height
-.attr("class", "container") //assign a class name
-.style("background-color", "rgba(0,0,0,0.2)"); //only put a semicolon at the end of the block!
+    //Example 1.3 line 4...set up choropleth map
+    function setMap() {
+        //map frame dimensions
+        var width = window.innerWidth * 0.5,
+            height = 460;
 
-//Example 1.4 line 1...container block
-var container = d3.select("body") //get the <body> element from the DOM
-.append("svg") //put a new svg in the body
-.attr("width", w) //assign the width
-.attr("height", h) //assign the height
-.attr("class", "container") //assign a class name
-.style("background-color", "rgba(0,0,0,0.2)") //svg background color
-.append("rect") //add a <rect> element
-.attr("width", 800) //rectangle width
-.attr("height", 400) //rectangle height
+        //create new svg container for the map
+        var map = d3
+            .select("body")
+            .append("svg")
+            .attr("class", "map")
+            .attr("width", width)
+            .attr("height", height);
 
-//Example 1.5 line 1...container block
-var container = d3.select("body") //get the <body> element from the DOM
-.append("svg") //put a new svg in the body
-.attr("width", w) //assign the width
-.attr("height", h) //assign the height
-.attr("class", "container") //assign a class name
-.style("background-color", "rgba(0,0,0,0.2)"); //svg background color
+        //create Albers equal area conic projection centered on France
+        var projection = d3
+            .geoAlbers()
+            .center([0, 46.2])
+            .rotate([-2, 0, 0])
+            .parallels([43, 62])
+            .scale(2500)
+            .translate([width / 2, height / 2]);
 
-//Example 1.6 line 9...innerRect block
-var innerRect = container.append("rect") //put a new rect in the svg
-.datum(400)
-.attr("width", 800) //rectangle width
-.attr("height", 400) //rectangle height
+        var path = d3.geoPath().projection(projection);
 
-console.log(innerRect);
+        //use Promise.all to parallelize asynchronous data loading
+        var promises = [
+            d3.csv("data/unitsData.csv"),
+            d3.json("data/EuropeCountries.topojson"),
+            d3.json("data/FranceRegions.topojson"),
+        ];
+        Promise.all(promises).then(callback);
 
-//Example 1.7 line 1...innerRect block
-var innerRect = container.append("rect") //put a new rect in the svg
-.datum(400) //a single value is a datum
-.attr("width", function(d){ //rectangle width
-return d * 2; //400 * 2 = 800
-}) 
-.attr("height", function(d){ //rectangle height
-return d; //400
-})
+        function callback(data) {
+            var csvData = data[0],
+                europe = data[1],
+                france = data[2];
 
-//Example 1.8 line 1...innerRect block
-var innerRect = container.append("rect")
-.datum(400) //a single value is a DATUM
-.attr("width", function(d){ //rectangle width
-return d * 2; //400 * 2 = 800
-})
-.attr("height", function(d){ //rectangle height
-return d; //400
-})
-.attr("class", "innerRect") //class name
-.attr("x", 50) //position from left on the x (horizontal) axis
-.attr("y", 50) //position from top on the y (vertical) axis
-.style("fill", "#FFFFFF"); //fill color
+            setGraticule(map, path);
 
-//below Example 1.9
-var dataArray = [10, 20, 30, 40, 50];
+            //translate europe TopoJSON
+            var europeCountries = topojson.feature(europe, europe.objects.EuropeCountries),
+                franceRegions = topojson.feature(france, france.objects.FranceRegions).features;
 
-//innerRect block
-var innerRect = container.append("rect") //put a new rect in the svg
-.attr("width", 800) //rectangle width
-.attr("height", 400) //rectangle height
+            //add Europe countries to map
+            var countries = map
+                .append("path")
+                .datum(europeCountries)
+                .attr("class", "countries")
+                .attr("d", path);
 
-// <rect> is now the operand of the container block
+            franceRegions = joinData(franceRegions, csvData);
 
-//execute script when window is loaded
-window.onload = function(){
+            var colorScale = makeColorScale(csvData);
 
-var container = d3.select("body") //get the <body> element from the DOM
+            setEnumerationUnits(franceRegions, map, path, colorScale);
 
-};
+            //add coordinated visualization to the map
+            setChart(csvData, colorScale);
 
-//Example 2.3 line 1
-var dataArray = [10, 20, 30, 40, 50];
-
-var circles = container.selectAll(".circles") //but wait--there are no circles yet!
-.data(dataArray) //here we feed in an array
-.enter() //one of the great mysteries of the universe
-
-var cityPop = [
-    { 
-        city: 'Madison',
-        population: 233209
-    },
-    {
-        city: 'Milwaukee',
-        population: 594833
-    },
-    {
-        city: 'Green Bay',
-        population: 104057
-    },
-    {
-        city: 'Superior',
-        population: 27244
-    }
-];
-
-//Example 2.4 line 1
-var dataArray = [10, 20, 30, 40, 50];
-
-var circles = container.selectAll(".circles") //but wait--there are no circles yet!
-    .data(dataArray) //here we feed in an array
-    .enter() //one of the great mysteries of the universe
-    .append("circle") //add a circle for each datum
-    .attr("class", "circles") //apply a class name to all circles
-
-//Example 2.5 line 1
-var dataArray = [10, 20, 30, 40, 50];
-
-var circles = container.selectAll(".circles") //but wait--there are no circles yet!
-    .data(dataArray) //here we feed in an array
-    .enter() //one of the great mysteries of the universe
-    .append("circle") //add a circle for each datum
-    .attr("class", "circles") //apply a class name to all circles
-    .attr("r", function(d, i){ //circle radius
-        console.log("d:", d, "i:", i); //let's take a look at d and i
-        return d;
-    })
-    .attr("cx", function(d, i){ //x coordinate
-        return 70 + (i * 180);
-    })
-    .attr("cy", function(d){ //y coordinate
-        return 450 - (d * 5);
-    });
-
- console.log()
-    var cityPop = [
-        { 
-            city: 'Madison',
-            population: 233209
-        },
-        {
-            city: 'Milwaukee',
-            population: 594833
-        },
-        {
-            city: 'Green Bay',
-            population: 104057
-        },
-        {
-            city: 'Superior',
-            population: 27244
-        }
-    ];
-    //Example 2.6 line 3
-var circles = container.selectAll(".circles") //create an empty selection
-    .data(cityPop) //here we feed in an array
-    .enter() //one of the great mysteries of the universe
-    .append("circle") //inspect the HTML--holy crap, there's some circles there
-    .attr("class", "circles")
-    .attr("id", function(d){
-        return d.city;
-    })
-    .attr("r", function(d){
-        //calculate the radius based on population value as circle area
-        var area = d.population * 0.01;
-        return Math.sqrt(area/Math.PI);
-    })
-    .attr("cx", function(d, i){
-        //use the index to place each circle horizontally
-        return 90 + (i * 180);
-    })
-    .attr("cy", function(d){
-        //subtract value from 450 to "grow" circles up from the bottom instead of down from the top of the SVG
-        return 450 - (d.population * 0.0005);
-    });
-
-    //above Example 2.8 line 20
-        //color scale generator 
-        var color = d3.scaleLinear()
-        .range([
-            "#FDBE85",
-            "#D94701"
-        ])
-        .domain([
-            minPop, 
-            maxPop
-        ]);
-
-    //find the minimum value of the array
-    var minPop = d3.min(cityPop, function(d){
-        return d.population;
-    });
-
-    //find the maximum value of the array
-    var maxPop = d3.max(cityPop, function(d){
-        return d.population;
-    });
-
-    //scale for circles center y coordinate
-    var y = d3.scaleLinear()
-        .range([440, 95])
-        .domain([
-            minPop,
-            maxPop
-        ]);
-        
-    /*var y = d3.scaleLinear()
-    .range([450, 50]) //was 440, 95
-    .domain([0, 700000]); //was minPop, maxPop */
-
-    //Example 2.8 line 34
-    x.attr("cx", function(d, i){
-        //use the scale generator with the index to place each circle horizontally
-        return x(i);
-    })
-
-    //Example 2.8 line 38
-    .attr("cy", function(d){
-        return y(d.population);
-    });
-
-var x = d3.scaleLinear() //create the scale
-    .range([90, 810]) //output min and max
-    .domain([0, 3]); //input min and max
-    
-function calcMinValue(data){
-    //create empty array to store all data values
-    var allValues = [];
-    //loop through each city
-    for(var city of data.features){
-        //loop through each enplanement
-        for(var emp = 2020; emp <= 2021; emp+=1){
-              //get population for current emp
-              var value = city.properties["Pop_"+ String(emp)];
-              //add value to array
-              allValues.push(value);
+            //add dropdown
+            createDropdown(csvData);
         }
     }
-    //get minimum value of our array
-    var minValue = Math.min(...allValues)
 
-    return minValue;
-}
+    function setGraticule(map, path) {
+        var graticule = d3.geoGraticule().step([5, 5]); //place graticule lines every 5 degrees of longitude and latitude
 
-//calculate the radius of each proportional symbol
-function calcPropRadius(attValue) {
-    //constant factor adjusts symbol sizes evenly
-    var minRadius = 5;
-    //Flannery Apperance Compensation formula
-    var radius = 1.0083 * Math.pow(attValue/minValue,0.5715) * minRadius
+        //create graticule background
+        var gratBackground = map
+            .append("path")
+            .datum(graticule.outline()) //bind graticule background
+            .attr("class", "gratBackground") //assign class for styling
+            .attr("d", path); //project graticule
 
-    return radius;
-};
+        //create graticule lines
+        var gratLines = map
+            .selectAll(".gratLines") //select graticule elements that will be created
+            .data(graticule.lines()) //bind graticule lines to each element to be created
+            .enter() //create an element for each datum
+            .append("path") //append each element to the svg as a path element
+            .attr("class", "gratLines") //assign class for styling
+            .attr("d", path); //project graticule lines
+    }
 
-    //For each feature, determine its value for the selected attribute
-    var attValue = Number(feature.properties[attribute]);
+    function joinData(franceRegions, csvData) {
+        //loop through csv to assign each set of csv attribute values to geojson region
+        for (var i = 0; i < csvData.length; i++) {
+            var csvRegion = csvData[i]; //the current region
+            var csvKey = csvRegion.adm1_code; //the CSV primary key
 
-    //Give each feature's circle marker a radius based on its attribute value
-    options.radius = calcPropRadius(attValue);
+            //loop through geojson regions to find correct region
+            for (var a = 0; a < franceRegions.length; a++) {
+                var geojsonProps = franceRegions[a].properties; //the current region geojson properties
+                var geojsonKey = geojsonProps.adm1_code; //the geojson primary key
 
-    //create circle marker layer
-    var layer = L.circleMarker(latlng, options);
+                //where primary keys match, transfer csv data to geojson properties object
+                if (geojsonKey == csvKey) {
+                    //assign all attributes and values
+                    attrArray.forEach(function (attr) {
+                        var val = parseFloat(csvRegion[attr]); //get csv attribute value
+                        geojsonProps[attr] = val; //assign attribute and value to geojson properties
+                    });
+                }
+            }
+        }
+        return franceRegions;
+    }
 
-    //build popup content string starting with city...Example 2.1 line 24
-    var popupContent = "<p><b>Airport:</b> " + feature.properties.Airport + "</p>";
+    function makeColorScale(data) {
+        var colorClasses = ["#D4B9DA", "#C994C7", "#DF65B0", "#DD1C77", "#980043"];
 
-    //add formatted attribute to popup content string
-    var emp = attribute.split("_")[1];
-    popupContent += "<p><b>Enplanements in " + emp + ":</b> " + feature.properties[attribute] + " landing</p>";
+        //create color scale generator
+        var colorScale = d3.scaleQuantile().range(colorClasses);
 
-    //bind the popup to the circle marker
-    layer.bindPopup(popupContent, {
-          offset: new L.Point(0,-options.radius)
-      });
+        //build array of all values of the expressed attribute
+        var domainArray = [];
+        for (var i = 0; i < data.length; i++) {
+            var val = parseFloat(data[i][expressed]);
+            domainArray.push(val);
+        }
 
-    //return the circle marker to the L.geoJson pointToLayer option
-    return layer;
+        //assign array of expressed values as scale domain
+        colorScale.domain(domainArray);
 
-function createPropSymbols(data){
-    //create a leaflet geojson layer and add it to the map
-    L.geoJson(data, {
-        pointToLayer: pointToLayer
-    }).addTo(map);
-};
+        return colorScale;
+    }
 
-function processData(data){
-    //empty array to hold attributes
-    var attributes = [];
+    function setEnumerationUnits(franceRegions, map, path, colorScale) {
+        //add France regions to map
+        var regions = map
+            .selectAll(".regions")
+            .data(franceRegions)
+            .enter()
+            .append("path")
+            .attr("class", function (d) {
+                return "regions " + d.properties.adm1_code;
+            })
+            .attr("d", path)
+            .style("fill", function (d) {
+                var value = d.properties[expressed];
+                if (value) {
+                    return colorScale(d.properties[expressed]);
+                } else {
+                    return "#ccc";
+                }
+            })
+            .on("mouseover", function (event, d) {
+                highlight(d.properties);
+            })
+            .on("mouseout", function (event, d) {
+                dehighlight(d.properties);
+            })
+            .on("mousemove", moveLabel);
 
-    //properties of the first feature in the dataset
-    var properties = data.features[0].properties;
+        var desc = regions.append("desc").text('{"stroke": "#000", "stroke-width": "0.5px"}');
+    }
 
-    //push each attribute name into attributes array
-    for (var attribute in properties){
-        //only take attributes with population values
-        if (attribute.indexOf("Pop") > -1){
-            attributes.push(attribute);
-        };
-    };
+    //function to create coordinated bar chart
+    function setChart(csvData, colorScale) {
+        //create a second svg element to hold the bar chart
+        var chart = d3
+            .select("body")
+            .append("svg")
+            .attr("width", chartWidth)
+            .attr("height", chartHeight)
+            .attr("class", "chart");
 
-    //check result
-    console.log(attributes);
+        //create a rectangle for chart background fill
+        var chartBackground = chart
+            .append("rect")
+            .attr("class", "chartBackground")
+            .attr("width", chartInnerWidth)
+            .attr("height", chartInnerHeight)
+            .attr("transform", translate);
 
-    return attributes;
-};
+        //set bars for each province
+        var bars = chart
+            .selectAll(".bar")
+            .data(csvData)
+            .enter()
+            .append("rect")
+            .sort(function (a, b) {
+                return b[expressed] - a[expressed];
+            })
+            .attr("class", function (d) {
+                return "bar " + d.adm1_code;
+            })
+            .attr("width", chartInnerWidth / csvData.length - 1)
+            .on("mouseover", function (event, d) {
+                highlight(d);
+            })
+            .on("mouseout", function (event, d) {
+                dehighlight(d);
+            })
+            .on("mousemove", moveLabel);
 
+        //create a text element for the chart title
+        var chartTitle = chart
+            .append("text")
+            .attr("x", 40)
+            .attr("y", 40)
+            .attr("class", "chartTitle");
 
-//Example 3.4 line 1
-/*.attr("cy", function(d){
-    return y(d.population);
-})
-.style("fill", function(d, i){ //add a fill based on the color scale generator
-    return color(d.population);
-})
-.style("stroke", "#000"); */ //black circle stroke
+        updateChart(bars, csvData.length, colorScale);
 
-//Example 3.6 line 1...create y axis generator
-var yAxis = d3.axisLeft(y);
+        //create vertical axis generator
+        var yAxis = d3.axisLeft().scale(yScale);
 
-//Example 3.7 line 6...create axis g element and add axis
-var axis = container.append("g")
-    .attr("class", "axis");
+        //place axis
+        var axis = chart.append("g").attr("class", "axis").attr("transform", translate).call(yAxis);
 
-yAxis(axis);
+        //create frame for chart border
+        var chartFrame = chart
+            .append("rect")
+            .attr("class", "chartFrame")
+            .attr("width", chartInnerWidth)
+            .attr("height", chartInnerHeight)
+            .attr("transform", translate);
 
-//Example 3.8 line 1...create axis g element and add axis
-var axis = container.append("g")
-    .attr("class", "axis")
-    .attr("transform", "translate(50, 0)")
-    .call(yAxis);
+        var desc = bars.append("desc").text('{"stroke": "none", "stroke-width": "0px"}');
+    }
 
-//below Example 3.9...create a text element and add the title
-var title = container.append("text")
-    .attr("class", "title")
-    .attr("text-anchor", "middle")
-    .attr("x", 450)
-    .attr("y", 30)
-    .text("City Populations");
+    //function to create a dropdown menu for attribute selection
+    function createDropdown(csvData) {
+        //add select element
+        var dropdown = d3
+            .select("body")
+            .append("select")
+            .attr("class", "dropdown")
+            .on("change", function () {
+                changeAttribute(this.value, csvData);
+            });
 
-//Example 3.14 line 1...create circle labels
-var labels = container.selectAll(".labels")
-    .data(cityPop)
-    .enter()
-    .append("text")
-    .attr("class", "labels")
-    .attr("text-anchor", "left")
-    .attr("y", function(d){
-        //vertical position centered on each circle
-        return y(d.population) + 5;
-    });
+        //add initial option
+        var titleOption = dropdown
+            .append("option")
+            .attr("class", "titleOption")
+            .attr("disabled", "true")
+            .text("Select Attribute");
 
-//Example 3.15 line 24...second line of label
-var popLine = labels.append("tspan")
-    .attr("class", "popLine")
-    .attr("x", function(d,i){
-        return x(i) + Math.sqrt(d.population * 0.01 / Math.PI) + 5;
-    })
-    .attr("dy", "15") //vertical offset
-    .text(function(d){
-        return "Pop. " + d.population;
-    });    
+        //add attribute name options
+        var attrOptions = dropdown
+            .selectAll("attrOptions")
+            .data(attrArray)
+            .enter()
+            .append("option")
+            .attr("value", function (d) {
+                return d;
+            })
+            .text(function (d) {
+                return d;
+            });
+    }
 
-//create format generator
-var format = d3.format(",");
+    //dropdown change listener handler
+    function changeAttribute(attribute, csvData) {
+        //change the expressed attribute
+        expressed = attribute;
 
-//Example 3.16 line 1...second line of label
-var popLine = labels.append("tspan")
-    .attr("class", "popLine")
-    .attr("x", function(d,i){
-        return x(i) + Math.sqrt(d.population * 0.01 / Math.PI) + 5;
-    })
-    .attr("dy", "15") //vertical offset
-    .text(function(d){
-        return "Pop. " + format(d.population); //use format generator to format numbers
-    });
+        //recreate the color scale
+        var colorScale = makeColorScale(csvData);
 
-//first line of label
-var nameLine = labels.append("tspan")
-    .attr("class", "nameLine")
-    .attr("x", function(d,i){
-        //horizontal position to the right of each circle
-        return x(i) + Math.sqrt(d.population * 0.01 / Math.PI) + 5;
-    })
-    .text(function(d){
-        return d.city;
-    });
+        //recolor enumeration units
+        var regions = d3
+            .selectAll(".regions")
+            .transition()
+            .duration(1000)
+            .style("fill", function (d) {
+                var value = d.properties[expressed];
+                if (value) {
+                    return colorScale(value);
+                } else {
+                    return "#ccc";
+                }
+            });
 
-//second line of label
-var popLine = labels.append("tspan")
-    .attr("class", "popLine")
-    .attr("x", function(d,i){
-        //horizontal position to the right of each circle
-        return x(i) + Math.sqrt(d.population * 0.01 / Math.PI) + 5;
-    })
-    .text(function(d){
-        return "Pop. " + d.population;
-    });
+        //re-sort, resize, and recolor bars
+        var bars = d3
+            .selectAll(".bar")
+            //re-sort bars
+            .sort(function (a, b) {
+                return b[expressed] - a[expressed];
+            })
+            .transition() //add animation
+            .delay(function (d, i) {
+                return i * 20;
+            })
+            .duration(500);
 
-/*.axis path,
-.axis line {
-    fill: none;
-    stroke: black;
-    stroke-width: 1px;
-    shape-rendering: crispEdges;
-}
+        updateChart(bars, csvData.length, colorScale);
+    }
 
-.axis text {
-    font-family: sans-serif;
-    font-size: 0.9em;
-}*/
+    function updateChart(bars, n, colorScale) {
+        //position bars
+        bars.attr("x", function (d, i) {
+            return i * (chartInnerWidth / n) + leftPadding;
+        })
+            //size/resize bars
+            .attr("height", function (d, i) {
+                return 463 - yScale(parseFloat(d[expressed]));
+            })
+            .attr("y", function (d, i) {
+                return yScale(parseFloat(d[expressed])) + topBottomPadding;
+            })
+            //color/recolor bars
+            .style("fill", function (d) {
+                var value = d[expressed];
+                if (value) {
+                    return colorScale(value);
+                } else {
+                    return "#ccc";
+                }
+            });
 
-//create axis g element and add axis
-var axis = container.append("g")
-    .attr("class", "axis")
-    .call(yAxis);
+        //at the bottom of updateChart()...add text to chart title
+        var chartTitle = d3
+            .select(".chartTitle")
+            .text("Number of Variable " + expressed[3] + " in each region");
+    }
 
-//Step 1: Create new sequence controls
-function createSequenceControls(){
-    //create range input element (slider)
-    var slider = "<input class='range-slider' type='range'></input>";
-    document.querySelector("#panel").insertAdjacentHTML('beforeend',slider);
+    //function to highlight enumeration units and bars
+    function highlight(props) {
+        //change stroke
+        var selected = d3
+            .selectAll("." + props.adm1_code)
+            .style("stroke", "blue")
+            .style("stroke-width", "2");
+        setLabel(props);
+    }
 
-    //set slider attributes
-    document.querySelector(".range-slider").max = 1;
-    document.querySelector(".range-slider").min = 0;
-    document.querySelector(".range-slider").value = 0;
-    document.querySelector(".range-slider").step = 1;
+    //function to reset the element style on mouseout
+    function dehighlight(props) {
+        var selected = d3
+            .selectAll("." + props.adm1_code)
+            .style("stroke", function () {
+                return getStyle(this, "stroke");
+            })
+            .style("stroke-width", function () {
+                return getStyle(this, "stroke-width");
+            });
 
-    //add step buttons
-    document.querySelector('#panel').insertAdjacentHTML('beforeend','<button class="step" id="reverse">Reverse</button>');
-    document.querySelector('#panel').insertAdjacentHTML('beforeend','<button class="step" id="forward">Forward</button>');
+        function getStyle(element, styleName) {
+            var styleText = d3.select(element).select("desc").text();
 
-    //replace button content with images
-    document.querySelector('#reverse').insertAdjacentHTML('beforeend',"<img src='img/reverse.png'>")
-    document.querySelector('#forward').insertAdjacentHTML('beforeend',"<img src='img/forward.png'>")
-};
+            var styleObject = JSON.parse(styleText);
 
-document.addEventListener('DOMContentLoaded',createMap)
+            return styleObject[styleName];
+        }
+        //remove info label
+        d3.select(".infolabel").remove();
+    }
+
+    //function to create dynamic label
+    function setLabel(props) {
+        console.log("here!");
+        //label content
+        var labelAttribute = "<h1>" + props[expressed] + "</h1><b>" + expressed + "</b>";
+
+        //create info label div
+        var infolabel = d3
+            .select("body")
+            .append("div")
+            .attr("class", "infolabel")
+            .attr("id", props.adm1_code + "_label")
+            .html(labelAttribute);
+
+        var regionName = infolabel.append("div").attr("class", "labelname").html(props.name);
+    }
+
+    //function to move info label with mouse
+    function moveLabel() {
+        //use coordinates of mousemove event to set label coordinates
+        var x = event.clientX + 10,
+            y = event.clientY - 75;
+
+        d3.select(".infolabel")
+            .style("left", x + "px")
+            .style("top", y + "px");
+    }
+})();
