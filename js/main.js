@@ -1,7 +1,7 @@
 //wrap everything is immediately invoked anonymous function so nothing is in clobal scope
 (function () {
     //pseudo-global variables
-    var attrArray = ["varA", "varB", "varC", "varD", "varE"]; //list of attributes
+    var attrArray = ["Transit Usage", "Employment", "Median Income", "Age", "Education"]; //list of attributes; ["varA", "varB", "varC", "varD", "varE"]
     var expressed = attrArray[0]; //initial attribute
 
     //chart frame dimensions
