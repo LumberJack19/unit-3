@@ -1,7 +1,7 @@
 //wrap everything is immediately invoked anonymous function so nothing is in clobal scope
 (function () {
     //pseudo-global variables
-    var attrArray = ["Transit Usage", "Employment", "Median Income", "Age", "Education"]; //list of attributes; ["varA", "varB", "varC", "varD", "varE"]
+    var attrArray = ["2016", "2015", "2014", "2013"]; //list of attributes; ["varA", "varB", "varC", "varD", "varE"]
     var expressed = attrArray[0]; //initial attribute
 
     //chart frame dimensions
@@ -47,7 +47,7 @@
 
         //use Promise.all to parallelize asynchronous data loading
         var promises = [
-            d3.csv("data/unitsData.csv"),
+            d3.csv("data/FranceRegionGdpData.csv"), //"data/unitsData.csv"
             d3.json("data/EuropeCountries.topojson"),
             d3.json("data/FranceRegions.topojson"),
         ];
@@ -259,7 +259,7 @@
             .append("option")
             .attr("class", "titleOption")
             .attr("disabled", "true")
-            .text("Select Attribute");
+            .text("Select GDP Per Capita by year");
 
         //add attribute name options
         var attrOptions = dropdown
@@ -338,7 +338,7 @@
         //at the bottom of updateChart()...add text to chart title
         var chartTitle = d3
             .select(".chartTitle")
-            .text("Number of Variable " + expressed[3] + " in each region");
+            .text("Number of GDP per year " + expressed[3] + " in each region");
     }
 
     //function to highlight enumeration units and bars
